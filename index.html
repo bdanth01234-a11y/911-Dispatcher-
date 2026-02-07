@@ -1,0 +1,2053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>911 Emergency Dispatcher</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-green: #00ff41;
+            --dark-green: #008f11;
+            --amber: #ffb000;
+            --red: #ff0040;
+            --blue: #00d4ff;
+            --bg-dark: #0a0a0f;
+            --panel-bg: rgba(10, 15, 20, 0.95);
+        }
+
+        html, body {
+            font-family: 'Share Tech Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--primary-green);
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        /* Animated Background Grid */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+        }
+
+        /* CRT Effects */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 1000;
+            animation: flicker 0.15s infinite;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 255, 65, 0.1);
+            opacity: 0.4;
+            animation: scanline 8s linear infinite;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 0.99; }
+            100% { opacity: 0.98; }
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, rgba(0,20,10,0.95) 0%, rgba(0,10,5,0.9) 100%);
+            padding: 15px 25px;
+            border-bottom: 2px solid var(--primary-green);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            position: relative;
+            z-index: 100;
+            height: 70px;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            text-shadow: 0 0 10px var(--primary-green), 0 0 20px var(--primary-green);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .header-icon {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.1); filter: brightness(1.3); }
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .status-item {
+            background: rgba(0, 20, 10, 0.8);
+            padding: 8px 20px;
+            border: 1px solid var(--primary-green);
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+        }
+
+        .emergency-mode {
+            color: var(--red);
+            border-color: var(--red);
+            animation: emergencyPulse 0.5s infinite;
+            box-shadow: 0 0 15px rgba(255, 0, 64, 0.5);
+        }
+
+        @keyframes emergencyPulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 15px rgba(255, 0, 64, 0.5); }
+            50% { opacity: 0.7; box-shadow: 0 0 25px rgba(255, 0, 64, 0.8); }
+        }
+
+        /* Main Container - FIXED LAYOUT */
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            gap: 20px;
+            padding: 20px;
+            position: absolute;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 140px;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        /* Glass Panel Effect */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 4px 6px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                0 0 20px rgba(0, 255, 65, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--amber);
+            border-bottom: 1px solid rgba(255, 176, 0, 0.3);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Caller Info Panel */
+        .caller-info {
+            font-size: 13px;
+            line-height: 2;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: rgba(0, 255, 65, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid var(--primary-green);
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            color: var(--primary-green);
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }
+
+        /* Audio Visualizer */
+        .audio-viz {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            height: 80px;
+            gap: 4px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            flex-shrink: 0;
+        }
+
+        .bar {
+            width: 6px;
+            background: linear-gradient(180deg, var(--primary-green), var(--dark-green));
+            border-radius: 3px 3px 0 0;
+            transition: height 0.1s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        .bar:nth-child(1) { height: 10%; }
+        .bar:nth-child(2) { height: 30%; }
+        .bar:nth-child(3) { height: 50%; }
+        .bar:nth-child(4) { height: 20%; }
+        .bar:nth-child(5) { height: 60%; }
+        .bar:nth-child(6) { height: 40%; }
+        .bar:nth-child(7) { height: 70%; }
+        .bar:nth-child(8) { height: 35%; }
+        .bar:nth-child(9) { height: 55%; }
+        .bar:nth-child(10) { height: 25%; }
+        .bar:nth-child(11) { height: 45%; }
+        .bar:nth-child(12) { height: 65%; }
+
+        .audio-viz.active .bar {
+            animation: sound 0.5s ease infinite alternate;
+        }
+
+        @keyframes sound {
+            0% { height: 10%; opacity: 0.5; }
+            100% { height: 90%; opacity: 1; }
+        }
+
+        .audio-viz.silent .bar {
+            animation: none;
+            height: 10% !important;
+            opacity: 0.3;
+        }
+
+        .audio-status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--amber);
+            letter-spacing: 2px;
+            flex-shrink: 0;
+        }
+
+        /* Transcript Panel - FIXED SCROLLING */
+        .transcript-panel {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .transcript-container {
+            flex: 1;
+            overflow-y: scroll !important;
+            overflow-x: hidden;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            min-height: 0;
+            position: relative;
+        }
+
+        /* Force scrollbar visibility */
+        .transcript-container::-webkit-scrollbar {
+            width: 12px !important;
+            display: block !important;
+        }
+
+        .transcript-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 6px;
+        }
+
+        .transcript-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary-green), var(--dark-green));
+            border-radius: 6px;
+            border: 2px solid rgba(0, 0, 0, 0.8);
+            min-height: 50px;
+        }
+
+        .transcript-container::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-green);
+            box-shadow: 0 0 10px var(--primary-green);
+        }
+
+        /* Firefox scrollbar */
+        .transcript-container {
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-green) rgba(0, 0, 0, 0.8);
+        }
+
+        .transcript-line {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease;
+            position: relative;
+            word-wrap: break-word;
+            flex-shrink: 0;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .caller-bubble {
+            background: linear-gradient(135deg, rgba(255, 176, 0, 0.15), rgba(255, 176, 0, 0.05));
+            border-left: 4px solid var(--amber);
+            margin-right: 15%;
+        }
+
+        .dispatcher-bubble {
+            background: linear-gradient(135deg, rgba(0, 255, 65, 0.15), rgba(0, 255, 65, 0.05));
+            border-right: 4px solid var(--primary-green);
+            margin-left: 15%;
+            text-align: right;
+        }
+
+        .system-bubble {
+            background: rgba(100, 100, 100, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            font-style: italic;
+            color: #888;
+            margin: 10px 20%;
+        }
+
+        .radio-bubble {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 212, 255, 0.05));
+            border-left: 4px solid var(--blue);
+            margin-right: 25%;
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .speaker-name {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .caller-bubble .speaker-name { color: var(--amber); }
+        .dispatcher-bubble .speaker-name { color: var(--primary-green); }
+        .radio-bubble .speaker-name { color: var(--blue); }
+
+        /* CUSTOM RESPONSE AREA */
+        .response-area {
+            background: rgba(0, 20, 10, 0.9);
+            border: 2px solid var(--amber);
+            border-radius: 8px;
+            padding: 15px;
+            flex-shrink: 0;
+        }
+
+        .response-label {
+            color: var(--amber);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .response-input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .response-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-radius: 6px;
+            padding: 12px;
+            color: var(--primary-green);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .response-input:focus {
+            border-color: var(--primary-green);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+        }
+
+        .response-input::placeholder {
+            color: #444;
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: linear-gradient(180deg, var(--primary-green), var(--dark-green));
+            border: none;
+            border-radius: 6px;
+            color: #000;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Context-aware suggestions */
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+
+        .suggestion-chip {
+            background: rgba(255, 176, 0, 0.1);
+            border: 1px solid rgba(255, 176, 0, 0.3);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: var(--amber);
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .suggestion-chip:hover {
+            background: rgba(255, 176, 0, 0.2);
+            border-color: var(--amber);
+            transform: translateY(-1px);
+        }
+
+        .suggestion-label {
+            width: 100%;
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        /* Notepad - FIXED SCROLLING */
+        .notepad-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .notepad-header {
+            background: linear-gradient(180deg, #8b4513, #654321);
+            color: #fff;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 8px 8px 0 0;
+            font-family: 'Rajdhani', sans-serif;
+            letter-spacing: 2px;
+            border: 2px solid #5a3a1a;
+            border-bottom: none;
+            flex-shrink: 0;
+        }
+
+        .notepad {
+            flex: 1;
+            background: #f5f5dc;
+            color: #2c1810;
+            border: 2px solid #8b4513;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            line-height: 28px;
+            background-image: linear-gradient(#e8e8d0 1px, transparent 1px);
+            background-size: 100% 28px;
+            overflow-y: scroll !important;
+            min-height: 0;
+        }
+
+        /* Notepad scrollbar */
+        .notepad::-webkit-scrollbar {
+            width: 12px !important;
+        }
+
+        .notepad::-webkit-scrollbar-track {
+            background: rgba(139, 69, 19, 0.3);
+            border-radius: 0 0 6px 0;
+        }
+
+        .notepad::-webkit-scrollbar-thumb {
+            background: #8b4513;
+            border-radius: 6px;
+            border: 2px solid #f5f5dc;
+        }
+
+        /* Bottom Control Panel */
+        .control-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 140px;
+            background: linear-gradient(180deg, rgba(10,15,20,0.98) 0%, rgba(5,10,5,0.99) 100%);
+            border-top: 2px solid var(--primary-green);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 300px;
+            gap: 20px;
+            z-index: 100;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .dispatch-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .dispatch-btn {
+            padding: 15px;
+            background: linear-gradient(180deg, rgba(0,40,20,0.9), rgba(0,20,10,0.95));
+            border: 2px solid var(--primary-green);
+            border-radius: 8px;
+            color: var(--primary-green);
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            height: 100%;
+        }
+
+        .dispatch-btn:hover {
+            background: linear-gradient(180deg, rgba(0,255,65,0.2), rgba(0,255,65,0.1));
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.4);
+        }
+
+        .dispatch-btn.active {
+            background: linear-gradient(180deg, rgba(255,0,64,0.3), rgba(255,0,64,0.2));
+            border-color: var(--red);
+            color: var(--red);
+            animation: activePulse 2s infinite;
+        }
+
+        @keyframes activePulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 0, 64, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(255, 0, 64, 0.6); }
+        }
+
+        .dispatch-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .dispatch-icon {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 12px;
+            background: linear-gradient(180deg, rgba(0,40,20,0.9), rgba(0,20,10,0.95));
+            border: 2px solid var(--primary-green);
+            border-radius: 8px;
+            color: var(--primary-green);
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background: linear-gradient(180deg, rgba(0,255,65,0.2), rgba(0,255,65,0.1));
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.4);
+        }
+
+        .answer-btn {
+            background: linear-gradient(180deg, rgba(255,0,64,0.3), rgba(255,0,64,0.2));
+            border-color: var(--red);
+            color: #fff;
+            animation: answerPulse 1.5s infinite;
+            font-size: 16px;
+        }
+
+        @keyframes answerPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(255, 0, 64, 0.5);
+            }
+            50% { 
+                transform: scale(1.02);
+                box-shadow: 0 0 40px rgba(255, 0, 64, 0.8);
+            }
+        }
+
+        .action-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Radio Panel */
+        .radio-panel {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid var(--blue);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .radio-title {
+            color: var(--blue);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-display {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--blue);
+            border-radius: 4px;
+            padding: 8px;
+            height: 60px;
+            overflow-y: scroll !important;
+            font-size: 11px;
+            color: var(--blue);
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .radio-display::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .radio-display::-webkit-scrollbar-thumb {
+            background: var(--blue);
+            border-radius: 4px;
+        }
+
+        .radio-input-container {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .radio-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--blue);
+            border-radius: 4px;
+            padding: 8px;
+            color: var(--blue);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+        }
+
+        .radio-send {
+            padding: 8px 15px;
+            background: var(--blue);
+            border: none;
+            border-radius: 4px;
+            color: #000;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .radio-channel {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+
+        .channel-btn {
+            flex: 1;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #666;
+            cursor: pointer;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        .channel-btn.active {
+            border-color: var(--blue);
+            color: var(--blue);
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        /* Start Modal */
+        .start-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .start-content {
+            background: linear-gradient(180deg, rgba(10,20,15,0.98), rgba(5,10,5,0.99));
+            border: 3px solid var(--primary-green);
+            border-radius: 16px;
+            padding: 50px;
+            max-width: 700px;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(0, 255, 65, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .start-title {
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px var(--primary-green);
+            font-family: 'Rajdhani', sans-serif;
+            letter-spacing: 5px;
+        }
+
+        .start-subtitle {
+            color: var(--amber);
+            font-size: 18px;
+            margin-bottom: 30px;
+            letter-spacing: 3px;
+        }
+
+        .instructions {
+            text-align: left;
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-green);
+        }
+
+        .instructions h3 {
+            color: var(--amber);
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .instructions ul {
+            list-style: none;
+            line-height: 2;
+        }
+
+        .instructions li {
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .instructions li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--primary-green);
+        }
+
+        .start-btn {
+            padding: 20px 60px;
+            background: linear-gradient(180deg, var(--primary-green), var(--dark-green));
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(0, 255, 65, 0.6);
+        }
+
+        /* End Call Modal */
+        .end-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, rgba(20,10,10,0.98), rgba(10,5,5,0.99));
+            border: 3px solid var(--red);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            z-index: 2500;
+            display: none;
+            box-shadow: 0 0 60px rgba(255, 0, 64, 0.4);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .end-modal.show {
+            display: block;
+            animation: modalIn 0.5s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .end-title {
+            color: var(--red);
+            font-size: 32px;
+            margin-bottom: 20px;
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+        }
+
+        .score-display {
+            font-size: 48px;
+            margin: 20px 0;
+            color: var(--primary-green);
+            text-shadow: 0 0 20px var(--primary-green);
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            color: var(--amber);
+            font-weight: bold;
+        }
+
+        .next-btn {
+            padding: 15px 40px;
+            background: transparent;
+            border: 2px solid var(--primary-green);
+            border-radius: 8px;
+            color: var(--primary-green);
+            font-size: 16px;
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .next-btn:hover {
+            background: var(--primary-green);
+            color: #000;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .volume-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--primary-green);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-slider {
+            width: 100px;
+            accent-color: var(--primary-green);
+        }
+
+        .call-counter {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--amber);
+            border-radius: 8px;
+            padding: 10px 20px;
+            color: var(--amber);
+            font-size: 14px;
+        }
+
+        /* Scroll hint */
+        .scroll-hint {
+            position: absolute;
+            right: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-green);
+            font-size: 20px;
+            opacity: 0.5;
+            pointer-events: none;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            50% { transform: translateY(-50%) translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="crt-overlay"></div>
+    <div class="scanline"></div>
+
+    <div class="volume-control">
+        <span>🔊</span>
+        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70">
+    </div>
+
+    <div class="call-counter">
+        CALLS HANDLED: <span id="callCount">0</span>
+    </div>
+
+    <!-- Start Modal -->
+    <div id="startModal" class="start-modal">
+        <div class="start-content">
+            <h1 class="start-title">🚨 911 DISPATCH CENTER</h1>
+            <p class="start-subtitle">EMERGENCY COMMUNICATIONS DIVISION</p>
+            
+            <div class="instructions">
+                <h3>OPERATOR PROTOCOLS:</h3>
+                <ul>
+                    <li>ANSWER incoming emergency calls immediately</li>
+                    <li>LISTEN to caller information and TYPE CUSTOM RESPONSES</li>
+                    <li>Use SUGGESTED responses or write your own</li>
+                    <li>DISPATCH appropriate units (Police, Fire, EMS, SWAT)</li>
+                    <li>USE RADIO to brief units on situation details</li>
+                    <li>SCROLL with mouse wheel to review chat history</li>
+                </ul>
+            </div>
+
+            <button class="start-btn" onclick="startGame()">INITIALIZE SYSTEM</button>
+        </div>
+    </div>
+
+    <!-- End Call Modal -->
+    <div id="endModal" class="end-modal">
+        <h2 class="end-title">CALL TERMINATED</h2>
+        <div class="score-display" id="scoreDisplay">85%</div>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Response Quality</div>
+                <div class="stat-value" id="responseStat">Good</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Units Dispatched</div>
+                <div class="stat-value" id="unitsStat">3/3</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Radio Comms</div>
+                <div class="stat-value" id="radioStat">2</div>
+            </div>
+        </div>
+        <p id="feedbackText" style="color: #888; margin-bottom: 20px;"></p>
+        <button class="next-btn" onclick="nextCall()">NEXT CALL</button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>
+            <span class="header-icon">📡</span>
+            DISPATCH CENTER - CONSOLE 4
+        </h1>
+        <div class="status-bar">
+            <div class="status-item" id="lineStatus">LINE: STANDBY</div>
+            <div class="status-item" id="callTimer">00:00</div>
+            <div class="status-item">UNIT: 247</div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <div class="panel">
+                <div class="panel-title">
+                    <span>📞</span> Caller Information
+                </div>
+                <div class="caller-info" id="callerInfo">
+                    <div class="info-row">
+                        <span class="info-label">CALLER ID</span>
+                        <span class="info-value" id="callerId">---</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">LOCATION</span>
+                        <span class="info-value" id="callerLocation">---</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">PHONE</span>
+                        <span class="info-value" id="callerPhone">---</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">EMERGENCY TYPE</span>
+                        <span class="info-value" id="emergencyType" style="color: var(--amber);">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel audio-panel">
+                <div class="panel-title">
+                    <span>🔊</span> Audio Monitor
+                </div>
+                <div class="audio-viz silent" id="audioViz">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+                <div class="audio-status" id="audioStatus">NO SIGNAL</div>
+            </div>
+        </div>
+
+        <!-- Center Panel -->
+        <div class="center-panel">
+            <div class="panel transcript-panel">
+                <div class="panel-title">
+                    <span>📋</span> Call Transcript
+                    <span style="margin-left: auto; font-size: 10px; color: #666;">SCROLL WITH MOUSE WHEEL ↕</span>
+                </div>
+                <div class="transcript-container" id="transcript">
+                    <div class="system-bubble" style="opacity: 0.6; padding: 20px;">
+                        Waiting for incoming emergency call...<br>
+                        <span style="font-size: 12px; margin-top: 10px; display: block;">
+                            System ready. Standby for dispatch.
+                        </span>
+                    </div>
+                </div>
+                <div class="scroll-hint" id="scrollHint">↔</div>
+                
+                <!-- CUSTOM RESPONSE AREA -->
+                <div class="response-area" id="responseArea" style="display: none;">
+                    <div class="response-label">
+                        <span>🎤 TYPE YOUR RESPONSE</span>
+                        <span style="color: #666; font-size: 10px;">PRESS ENTER TO SEND</span>
+                    </div>
+                    <div class="response-input-container">
+                        <input type="text" class="response-input" id="responseInput" placeholder="Type your response to the caller..." maxlength="200" disabled>
+                        <button class="send-btn" id="sendBtn" onclick="sendResponse()" disabled>SEND</button>
+                    </div>
+                    <div class="suggestions" id="suggestions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="notepad-container">
+                <div class="notepad-header">📝 INCIDENT NOTEPAD</div>
+                <textarea class="notepad" id="notepad" placeholder="TYPE NOTES HERE...&#10;&#10;Capture:&#10;- Exact location&#10;- Nature of emergency&#10;- Number of people&#10;- Injuries/conditions&#10;- Suspect descriptions&#10;- Weapons involved&#10;- Vehicle information&#10;- Hazards present"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <div>
+            <div style="color: var(--amber); font-size: 12px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px;">
+                🚔 Dispatch Units
+            </div>
+            <div class="dispatch-grid">
+                <button class="dispatch-btn" id="btnPolice" onclick="toggleDispatch('police')">
+                    <span class="dispatch-icon">🚓</span>
+                    POLICE
+                </button>
+                <button class="dispatch-btn" id="btnFire" onclick="toggleDispatch('fire')">
+                    <span class="dispatch-icon">🚒</span>
+                    FIRE
+                </button>
+                <button class="dispatch-btn" id="btnEms" onclick="toggleDispatch('ems')">
+                    <span class="dispatch-icon">🚑</span>
+                    EMS
+                </button>
+                <button class="dispatch-btn" id="btnSwat" onclick="toggleDispatch('swat')">
+                    <span class="dispatch-icon">⚔️</span>
+                    SWAT
+                </button>
+            </div>
+        </div>
+
+        <div class="radio-panel">
+            <div class="radio-title">
+                <span>📻</span> RADIO COMMUNICATION
+            </div>
+            <div class="radio-channel">
+                <button class="channel-btn active" id="chPolice" onclick="setRadioChannel('police')">POLICE</button>
+                <button class="channel-btn" id="chFire" onclick="setRadioChannel('fire')">FIRE</button>
+                <button class="channel-btn" id="chEms" onclick="setRadioChannel('ems')">EMS</button>
+                <button class="channel-btn" id="chSwat" onclick="setRadioChannel('swat')">SWAT</button>
+            </div>
+            <div class="radio-display" id="radioDisplay">
+                <div style="color: #666; font-style: italic;">Select channel to communicate...</div>
+            </div>
+            <div class="radio-input-container">
+                <input type="text" class="radio-input" id="radioInput" placeholder="Enter message to units..." maxlength="100">
+                <button class="radio-send" onclick="sendRadioMessage()">SEND</button>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn answer-btn" id="answerBtn" onclick="answerCall()">
+                ANSWER CALL
+            </button>
+            <button class="action-btn" id="endBtn" onclick="endCall()" disabled>
+                END CALL
+            </button>
+            <button class="action-btn" onclick="clearNotepad()">
+                CLEAR NOTES
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let currentCall = null;
+        let callInProgress = false;
+        let callStartTime = null;
+        let timerInterval = null;
+        let transcriptIndex = 0;
+        let dispatchedUnits = new Set();
+        let callScore = 0;
+        let totalCalls = 0;
+        let radioChannel = 'police';
+        let radioMessages = [];
+        let callHistory = [];
+        let audioContext = null;
+        let volume = 0.7;
+        let currentContext = '';
+
+        // Audio Synthesis
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playTone(frequency, duration, type = 'sine') {
+            if (!audioContext) return;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            gainNode.gain.setValueAtTime(volume * 0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playRadioChirp() {
+            playTone(800, 0.1, 'sine');
+            setTimeout(() => playTone(1200, 0.1, 'sine'), 100);
+        }
+
+        function playDispatchTone() {
+            playTone(600, 0.2, 'square');
+            setTimeout(() => playTone(800, 0.2, 'square'), 200);
+            setTimeout(() => playTone(1000, 0.4, 'square'), 400);
+        }
+
+        function playIncomingCallTone() {
+            if (!callInProgress) {
+                playTone(440, 0.5, 'sine');
+                setTimeout(() => {
+                    if (!callInProgress) playIncomingCallTone();
+                }, 1500);
+            }
+        }
+
+        // Context-aware response suggestions
+        const responseTemplates = {
+            opening: [
+                "911, what's your emergency?",
+                "This is 911, what is the address of your emergency?",
+                "911 dispatch, what is happening?",
+                "Emergency services, how can I help you?"
+            ],
+            location: [
+                "Can you confirm the address?",
+                "What is your exact location?",
+                "Are you at {location}?",
+                "What cross streets are you near?"
+            ],
+            medical: [
+                "Is the person conscious?",
+                "Are they breathing normally?",
+                "Don't move them unless they're in danger.",
+                "How old is the patient?",
+                "Is there any bleeding?",
+                "Stay calm, EMS is on the way."
+            ],
+            fire: [
+                "Is anyone trapped inside?",
+                "Get everyone out of the building now.",
+                "Don't use elevators, use stairs.",
+                "How big are the flames?",
+                "Stay away from the building."
+            ],
+            police: [
+                "Is the suspect still there?",
+                "Are you in a safe location?",
+                "Do not approach the suspect.",
+                "Can you describe what they look like?",
+                "Stay on the line with me.",
+                "Lock your doors and hide."
+            ],
+            weapon: [
+                "Did you see a weapon? What kind?",
+                "Stay away from them, don't confront.",
+                "How many people with weapons?",
+                "Are they threatening anyone right now?"
+            ],
+            vehicle: [
+                "What direction did they go?",
+                "Can you see the license plate?",
+                "What color and make was the vehicle?",
+                "Is the vehicle still there?"
+            ],
+            calming: [
+                "Help is on the way.",
+                "Stay with me, you're doing great.",
+                "Take a deep breath.",
+                "You're safe now, just stay on the line.",
+                "We're going to get through this together."
+            ],
+            closing: [
+                "Units are arriving now.",
+                "Stay where you are until help arrives.",
+                "Do not hang up until police arrive.",
+                "You did the right thing calling."
+            ]
+        };
+
+        function getSuggestions(context, scenario) {
+            const suggestions = [];
+            
+            suggestions.push(responseTemplates.calming[Math.floor(Math.random() * responseTemplates.calming.length)]);
+            
+            if (context.includes('scared') || context.includes('help')) {
+                suggestions.push("I'm here to help you. Tell me what's happening.");
+                suggestions.push("You're safe now. What is your emergency?");
+            }
+            
+            if (context.includes('fire') || scenario.category === 'FIRE') {
+                suggestions.push(responseTemplates.fire[Math.floor(Math.random() * responseTemplates.fire.length)]);
+            }
+            
+            if (context.includes('hurt') || context.includes('bleeding') || context.includes('not breathing') || scenario.category === 'MEDICAL') {
+                suggestions.push(responseTemplates.medical[Math.floor(Math.random() * responseTemplates.medical.length)]);
+            }
+            
+            if (context.includes('gun') || context.includes('knife') || context.includes('weapon') || scenario.weapon) {
+                suggestions.push(responseTemplates.weapon[Math.floor(Math.random() * responseTemplates.weapon.length)]);
+            }
+            
+            if (context.includes('car') || context.includes('driving') || context.includes('vehicle') || scenario.vehicle) {
+                suggestions.push(responseTemplates.vehicle[Math.floor(Math.random() * responseTemplates.vehicle.length)]);
+            }
+            
+            if (context.includes('breaking in') || context.includes('robbery') || context.includes('stealing') || scenario.category === 'POLICE' || scenario.category === 'SWAT') {
+                suggestions.push(responseTemplates.police[Math.floor(Math.random() * responseTemplates.police.length)]);
+            }
+            
+            if (transcriptIndex < 3) {
+                suggestions.push(responseTemplates.location[Math.floor(Math.random() * responseTemplates.location.length)]);
+            }
+            
+            return [...new Set(suggestions)].slice(0, 4);
+        }
+
+        // Scenario Generator
+        const firstNames = ['JAMES', 'MARY', 'JOHN', 'PATRICIA', 'ROBERT', 'JENNIFER', 'MICHAEL', 'LINDA', 'WILLIAM', 'ELIZABETH', 'DAVID', 'BARBARA', 'RICHARD', 'SUSAN', 'JOSEPH', 'JESSICA', 'THOMAS', 'SARAH', 'CHARLES', 'KAREN', 'CHRISTOPHER', 'NANCY', 'DANIEL', 'LISA', 'MATTHEW', 'BETTY', 'ANTHONY', 'MARGARET', 'MARK', 'SANDRA'];
+        const lastNames = ['SMITH', 'JOHNSON', 'WILLIAMS', 'BROWN', 'JONES', 'GARCIA', 'MILLER', 'DAVIS', 'RODRIGUEZ', 'MARTINEZ', 'HERNANDEZ', 'LOPEZ', 'GONZALEZ', 'WILSON', 'ANDERSON', 'THOMAS', 'TAYLOR', 'MOORE', 'JACKSON', 'MARTIN', 'LEE', 'PEREZ', 'THOMPSON', 'WHITE', 'HARRIS', 'SANCHEZ', 'CLARK', 'RAMIREZ', 'LEWIS', 'ROBINSON'];
+        
+        const streets = ['OAK', 'MAPLE', 'PINE', 'CEDAR', 'ELM', 'WASHINGTON', 'LAKE', 'HILL', 'MAIN', 'BROADWAY', 'PARK', 'CENTER', 'MARKET', 'RIVER', 'FOREST', 'MEADOW', 'SUNSET', 'UNION', 'CENTRAL', 'RAILROAD'];
+        const streetTypes = ['STREET', 'AVENUE', 'BOULEVARD', 'DRIVE', 'LANE', 'ROAD', 'WAY', 'COURT', 'PLACE', 'TERRACE'];
+        
+        const locations = ['RESIDENCE', 'APARTMENT', 'OFFICE BUILDING', 'WAREHOUSE', 'STORE', 'RESTAURANT', 'SCHOOL', 'HOSPITAL', 'PARKING LOT', 'PARK', 'SHOPPING MALL', 'GAS STATION', 'BANK', 'HOTEL', 'FACTORY', 'CONSTRUCTION SITE', 'BRIDGE', 'TUNNEL', 'HIGHWAY', 'ALLEY'];
+
+        const emergencyTypes = {
+            MEDICAL: ['CARDIAC ARREST', 'DIFFICULTY BREATHING', 'SEVERE BLEEDING', 'POSSIBLE OVERDOSE', 'ALLERGIC REACTION', 'CHOKING', 'CHEST PAIN', 'SEIZURE', 'UNCONSCIOUS PERSON', 'FALL INJURY', 'CARBON MONOXIDE', 'BURNS', 'FRACTURE', 'PREGNANCY EMERGENCY', 'STROKE SYMPTOMS'],
+            FIRE: ['STRUCTURE FIRE', 'VEHICLE FIRE', 'KITCHEN FIRE', 'ELECTRICAL FIRE', 'WILDFIRE', 'GAS LEAK', 'SMOKE INVESTIGATION', 'EXPLOSION', 'CHEMICAL SPILL', 'TRAPPED OCCUPANTS'],
+            POLICE: ['BURGLARY IN PROGRESS', 'DOMESTIC DISTURBANCE', 'ASSAULT', 'ROBBERY', 'SUSPICIOUS PERSON', 'NOISE COMPLAINT', 'VANDALISM', 'THEFT', 'FRAUD', 'MISSING PERSON', 'DUI', 'TRESPASSING', 'HARASSMENT', 'CHILD ENDANGERMENT', 'ANIMAL ATTACK'],
+            SWAT: ['HOSTAGE SITUATION', 'ACTIVE SHOOTER', 'ARMED ROBBERY', 'BARricaded SUSPECT', 'TERRORIST THREAT', 'BOMB THREAT', 'HIGH-RISK WARRANT', 'SNIPER', 'MULTIPLE CASUALTIES']
+        };
+
+        const weapons = ['knife', 'handgun', 'rifle', 'shotgun', 'baseball bat', 'crowbar', 'broken bottle', 'chain', 'machete', 'axe'];
+        const vehicles = ['red sedan', 'blue pickup', 'black SUV', 'white van', 'silver coupe', 'gray truck', 'green jeep', 'yellow taxi'];
+        const descriptions = ['tall male, black jacket', 'short female, blonde hair', 'heavyset male, beard', 'thin male, hooded sweatshirt', 'female, long brown hair', 'male, tattoos on arms', 'elderly person, gray hair', 'teenager, backpack', 'two males, matching shirts', 'person in clown mask'];
+
+        function generateScenario() {
+            const typeKeys = Object.keys(emergencyTypes);
+            const mainType = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+            const specificType = emergencyTypes[mainType][Math.floor(Math.random() * emergencyTypes[mainType].length)];
+            
+            const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+            const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            const streetNum = Math.floor(Math.random() * 9900) + 100;
+            const street = streets[Math.floor(Math.random() * streets.length)];
+            const type = streetTypes[Math.floor(Math.random() * streetTypes.length)];
+            const location = locations[Math.floor(Math.random() * locations.length)];
+            
+            const scenario = {
+                id: Date.now() + Math.random(),
+                callerName: `${firstName} ${lastName.charAt(0)}.`,
+                location: `${streetNum} ${street} ${type}, ${location}`,
+                phone: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
+                type: specificType,
+                category: mainType,
+                weapon: Math.random() > 0.5 ? weapons[Math.floor(Math.random() * weapons.length)] : null,
+                vehicle: Math.random() > 0.6 ? vehicles[Math.floor(Math.random() * vehicles.length)] : null,
+                description: descriptions[Math.floor(Math.random() * descriptions.length)],
+                transcript: [],
+                requiredUnits: [],
+                keyInfo: []
+            };
+
+            scenario.transcript = buildTranscript(scenario);
+            
+            if (mainType === 'MEDICAL') scenario.requiredUnits = ['ems'];
+            else if (mainType === 'FIRE') scenario.requiredUnits = ['fire', 'ems'];
+            else if (mainType === 'POLICE') scenario.requiredUnits = ['police'];
+            else if (mainType === 'SWAT') scenario.requiredUnits = ['police', 'swat', 'ems'];
+            
+            if (scenario.weapon || specificType.includes('ASSAULT') || specificType.includes('ROBBERY')) {
+                if (!scenario.requiredUnits.includes('police')) scenario.requiredUnits.push('police');
+            }
+
+            scenario.keyInfo = [
+                scenario.location.split(',')[0].toLowerCase(),
+                specificType.toLowerCase(),
+                scenario.callerName.toLowerCase().split(' ')[0]
+            ];
+            if (scenario.weapon) scenario.keyInfo.push(scenario.weapon);
+            if (scenario.vehicle) scenario.keyInfo.push(scenario.vehicle.split(' ')[1]);
+            if (scenario.description) scenario.keyInfo.push(...scenario.description.toLowerCase().split(', '));
+
+            return scenario;
+        }
+
+        function buildTranscript(scenario) {
+            const lines = [];
+            const isViolent = scenario.weapon || scenario.category === 'SWAT' || scenario.category === 'POLICE';
+            
+            lines.push({ 
+                speaker: 'caller', 
+                text: getOpeningLine(scenario), 
+                delay: 1000,
+                requiresResponse: true
+            });
+            
+            lines.push({ 
+                speaker: 'dispatcher', 
+                text: "911, what's the address of your emergency?", 
+                delay: 2500, 
+                auto: true 
+            });
+            
+            lines.push({ 
+                speaker: 'caller', 
+                text: getSituationLine(scenario), 
+                delay: 4000,
+                requiresResponse: true
+            });
+            
+            if (scenario.weapon) {
+                lines.push({ 
+                    speaker: 'caller', 
+                    text: `They have a ${scenario.weapon}!`, 
+                    delay: 6000,
+                    requiresResponse: true
+                });
+            }
+            
+            if (scenario.vehicle) {
+                lines.push({ 
+                    speaker: 'caller', 
+                    text: `I saw them get into a ${scenario.vehicle}.`, 
+                    delay: 7000,
+                    requiresResponse: true
+                });
+            }
+            
+            if (scenario.description && Math.random() > 0.3) {
+                lines.push({ 
+                    speaker: 'caller', 
+                    text: `The suspect is ${scenario.description}.`, 
+                    delay: 8000,
+                    requiresResponse: true
+                });
+            }
+            
+            if (scenario.category === 'MEDICAL') {
+                lines.push({ 
+                    speaker: 'dispatcher', 
+                    text: 'Is the person conscious and breathing?', 
+                    delay: 10000, 
+                    auto: true 
+                });
+                lines.push({ 
+                    speaker: 'caller', 
+                    text: getMedicalDetail(), 
+                    delay: 12000,
+                    requiresResponse: true
+                });
+            } else if (scenario.category === 'FIRE') {
+                lines.push({ 
+                    speaker: 'dispatcher', 
+                    text: 'Is anyone trapped inside?', 
+                    delay: 10000, 
+                    auto: true 
+                });
+                lines.push({ 
+                    speaker: 'caller', 
+                    text: getFireDetail(), 
+                    delay: 12000,
+                    requiresResponse: true
+                });
+            } else if (isViolent) {
+                lines.push({ 
+                    speaker: 'dispatcher', 
+                    text: 'Are you in a safe location right now?', 
+                    delay: 10000, 
+                    auto: true 
+                });
+                lines.push({ 
+                    speaker: 'caller', 
+                    text: getSafetyDetail(), 
+                    delay: 12000,
+                    requiresResponse: true
+                });
+            }
+            
+            lines.push({ 
+                speaker: 'dispatcher', 
+                text: `Help is on the way to ${scenario.location.split(',')[0]}. Stay on the line.`, 
+                delay: 15000, 
+                auto: true 
+            });
+            lines.push({ 
+                speaker: 'caller', 
+                text: 'Okay, please hurry!', 
+                delay: 17000,
+                requiresResponse: true
+            });
+            
+            return lines;
+        }
+
+        function getOpeningLine(scenario) {
+            const openings = [
+                'Help! I need help right now!',
+                'Oh my god, please send someone quickly!',
+                'There\'s an emergency! I don\'t know what to do!',
+                'Please, I need the police/ambulance/fire department!',
+                'Something terrible is happening!',
+                'I need to report an emergency!',
+                'Can you hear me? This is an emergency!',
+                'Please help me, I\'m scared!'
+            ];
+            return openings[Math.floor(Math.random() * openings.length)];
+        }
+
+        function getSituationLine(scenario) {
+            const templates = {
+                MEDICAL: [
+                    `My ${['husband', 'wife', 'mother', 'father', 'friend', 'neighbor'][Math.floor(Math.random() * 6)]} is ${scenario.type.toLowerCase()}! I'm at ${scenario.location.split(',')[0]}.`,
+                    `There's someone here having ${scenario.type.toLowerCase()}! We're at ${scenario.location.split(',')[0]}.`,
+                    `I think someone is experiencing ${scenario.type.toLowerCase()}! Location is ${scenario.location.split(',')[0]}.`,
+                    `Please send an ambulance for ${scenario.type.toLowerCase()}! Address is ${scenario.location.split(',')[0]}.`
+                ],
+                FIRE: [
+                    `The ${scenario.location.split(',')[1].trim()} at ${scenario.location.split(',')[0]} is on fire!`,
+                    `There's a fire at ${scenario.location.split(',')[0]}! Send fire trucks!`,
+                    `I see flames coming from the building at ${scenario.location.split(',')[0]}!`,
+                    `Smoke is everywhere at ${scenario.location.split(',')[0]}, there's a fire!`
+                ],
+                POLICE: [
+                    `Someone is trying to break into my house at ${scenario.location.split(',')[0]}!`,
+                    `I was just robbed at ${scenario.location.split(',')[0]}!`,
+                    `There's a fight happening outside ${scenario.location.split(',')[0]}!`,
+                    `A suspicious person is lurking around ${scenario.location.split(',')[0]}!`,
+                    `My ex is trying to get into my house at ${scenario.location.split(',')[0]}!`
+                ],
+                SWAT: [
+                    `Someone is shooting at ${scenario.location.split(',')[0]}! I hear gunshots!`,
+                    `There\'s a man with a gun in the ${scenario.location.split(',')[1].trim()} at ${scenario.location.split(',')[0]}!`,
+                    `People are screaming at ${scenario.location.split(',')[0]}, there\'s an active shooter!`,
+                    `Hostages! They\'re holding people hostage at ${scenario.location.split(',')[0]}!`
+                ]
+            };
+            const options = templates[scenario.category] || templates.POLICE;
+            return options[Math.floor(Math.random() * options.length)];
+        }
+
+        function getMedicalDetail() {
+            const details = [
+                'They\'re breathing but barely conscious.',
+                'No, they\'re not responding to me!',
+                'Yes, but they\'re in severe pain.',
+                'I can\'t tell, I\'m too scared to check!',
+                'They\'re having trouble breathing!'
+            ];
+            return details[Math.floor(Math.random() * details.length)];
+        }
+
+        function getFireDetail() {
+            const details = [
+                'I don\'t think so, but I hear someone yelling!',
+                'Yes! My dog is still inside!',
+                'No, everyone got out safely.',
+                'I\'m not sure, the smoke is too thick!',
+                'There might be someone on the second floor!'
+            ];
+            return details[Math.floor(Math.random() * details.length)];
+        }
+
+        function getSafetyDetail() {
+            const details = [
+                'Yes, I\'m locked in the bathroom.',
+                'I\'m hiding behind the counter.',
+                'No, I can see them from my window.',
+                'I ran outside, I\'m across the street.',
+                'I\'m in my car watching from the parking lot.'
+            ];
+            return details[Math.floor(Math.random() * details.length)];
+        }
+
+        function startGame() {
+            initAudio();
+            document.getElementById('startModal').classList.add('hidden');
+            incomingCall();
+        }
+
+        function incomingCall() {
+            document.getElementById('lineStatus').textContent = 'LINE: INCOMING';
+            document.getElementById('lineStatus').classList.add('emergency-mode');
+            document.getElementById('answerBtn').disabled = false;
+            document.getElementById('answerBtn').classList.add('answer-btn');
+            document.getElementById('transcript').innerHTML = `
+                <div class="system-bubble" style="color: var(--red); animation: emergencyPulse 1s infinite; padding: 30px; font-size: 18px;">
+                    📞 INCOMING EMERGENCY CALL<br>
+                    <span style="font-size: 14px; margin-top: 10px; display: block;">ANSWER IMMEDIATELY</span>
+                </div>
+            `;
+            playIncomingCallTone();
+        }
+
+        function answerCall() {
+            callInProgress = true;
+            callStartTime = Date.now();
+            transcriptIndex = 0;
+            dispatchedUnits.clear();
+            radioMessages = [];
+            callScore = 0;
+            
+            document.getElementById('answerBtn').disabled = true;
+            document.getElementById('answerBtn').classList.remove('answer-btn');
+            document.getElementById('endBtn').disabled = false;
+            document.getElementById('lineStatus').textContent = 'LINE: ACTIVE';
+            document.getElementById('lineStatus').classList.remove('emergency-mode');
+            document.getElementById('audioViz').classList.remove('silent');
+            document.getElementById('audioViz').classList.add('active');
+            document.getElementById('audioStatus').textContent = 'CALL CONNECTED - AUDIO ACTIVE';
+            document.getElementById('notepad').value = '';
+            document.getElementById('radioDisplay').innerHTML = '';
+            document.getElementById('transcript').innerHTML = '';
+            document.getElementById('scrollHint').style.display = 'none';
+            
+            document.getElementById('responseArea').style.display = 'block';
+            
+            document.querySelectorAll('.dispatch-btn').forEach(btn => btn.classList.remove('active'));
+            
+            do {
+                currentCall = generateScenario();
+            } while (callHistory.includes(currentCall.id) && callHistory.length < 100);
+            
+            callHistory.push(currentCall.id);
+            if (callHistory.length > 50) callHistory.shift();
+            
+            document.getElementById('callerId').textContent = currentCall.callerName;
+            document.getElementById('callerLocation').textContent = currentCall.location;
+            document.getElementById('callerPhone').textContent = currentCall.phone;
+            document.getElementById('emergencyType').textContent = currentCall.type;
+            
+            timerInterval = setInterval(updateTimer, 1000);
+            processTranscript();
+        }
+
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
+        }
+
+        function processTranscript() {
+            if (!callInProgress || transcriptIndex >= currentCall.transcript.length) {
+                if (!callInProgress) {
+                    document.getElementById('responseArea').style.display = 'none';
+                }
+                return;
+            }
+            
+            const line = currentCall.transcript[transcriptIndex];
+            
+            setTimeout(() => {
+                if (!callInProgress) return;
+                
+                addToTranscript(line.speaker, line.text);
+                
+                if (line.speaker === 'caller') {
+                    document.getElementById('audioViz').classList.remove('silent');
+                    document.getElementById('audioViz').classList.add('active');
+                    playTone(200 + Math.random() * 400, 0.1, 'sine');
+                    setTimeout(() => {
+                        document.getElementById('audioViz').classList.remove('active');
+                        document.getElementById('audioViz').classList.add('silent');
+                    }, 1500);
+                }
+                
+                if (line.requiresResponse) {
+                    enableResponseInput(line.text);
+                } else if (line.auto) {
+                    transcriptIndex++;
+                    processTranscript();
+                }
+            }, line.delay);
+        }
+
+        function enableResponseInput(callerText) {
+            const input = document.getElementById('responseInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const suggestionsDiv = document.getElementById('suggestions');
+            
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.value = '';
+            input.focus();
+            
+            currentContext = callerText.toLowerCase();
+            
+            const suggestions = getSuggestions(currentContext, currentCall);
+            
+            suggestionsDiv.innerHTML = '<div class="suggestion-label">Suggested responses (click to use):</div>';
+            suggestions.forEach(suggestion => {
+                const chip = document.createElement('div');
+                chip.className = 'suggestion-chip';
+                chip.textContent = suggestion;
+                chip.onclick = () => {
+                    input.value = suggestion;
+                    input.focus();
+                };
+                suggestionsDiv.appendChild(chip);
+            });
+        }
+
+        function sendResponse() {
+            const input = document.getElementById('responseInput');
+            const text = input.value.trim();
+            
+            if (!text || !callInProgress) return;
+            
+            addToTranscript('dispatcher', text);
+            
+            const responseLower = text.toLowerCase();
+            let responseScore = 5;
+            
+            if (currentContext.includes('scared') && (responseLower.includes('safe') || responseLower.includes('help'))) responseScore += 5;
+            if (currentContext.includes('hurt') && (responseLower.includes('ambulance') || responseLower.includes('medical'))) responseScore += 5;
+            if (currentContext.includes('fire') && (responseLower.includes('fire') || responseLower.includes('out'))) responseScore += 5;
+            if (currentContext.includes('gun') || currentContext.includes('knife')) {
+                if (responseLower.includes('police') || responseLower.includes('stay away') || responseLower.includes('safe')) responseScore += 5;
+            }
+            if (responseLower.includes('location') || responseLower.includes('address')) responseScore += 3;
+            if (responseLower.includes('stay') || responseLower.includes('calm')) responseScore += 2;
+            
+            callScore += responseScore;
+            
+            input.disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('suggestions').innerHTML = '';
+            
+            transcriptIndex++;
+            setTimeout(() => processTranscript(), 1000);
+        }
+
+        document.getElementById('responseInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendResponse();
+            }
+        });
+
+        function addToTranscript(speaker, text) {
+            const container = document.getElementById('transcript');
+            const div = document.createElement('div');
+            
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+            
+            if (speaker === 'caller') {
+                div.className = 'transcript-line caller-bubble';
+                div.innerHTML = `
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="speaker-name">👤 ${currentCall.callerName}</div>
+                    <div>${text}</div>
+                `;
+            } else if (speaker === 'dispatcher') {
+                div.className = 'transcript-line dispatcher-bubble';
+                div.innerHTML = `
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="speaker-name">🎧 YOU (DISPATCHER)</div>
+                    <div>${text}</div>
+                `;
+            } else if (speaker === 'radio') {
+                div.className = 'transcript-line radio-bubble';
+                div.innerHTML = `
+                    <div class="timestamp">${timestamp}</div>
+                    <div class="speaker-name">📻 RADIO (${radioChannel.toUpperCase()})</div>
+                    <div>${text}</div>
+                `;
+            } else {
+                div.className = 'transcript-line system-bubble';
+                div.textContent = text;
+            }
+            
+            container.appendChild(div);
+            
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function toggleDispatch(unit) {
+            const btn = document.getElementById(`btn${unit.charAt(0).toUpperCase() + unit.slice(1)}`);
+            
+            if (dispatchedUnits.has(unit)) {
+                dispatchedUnits.delete(unit);
+                btn.classList.remove('active');
+                addToTranscript('system', `${unit.toUpperCase()} UNIT CANCELLED`);
+            } else {
+                dispatchedUnits.add(unit);
+                btn.classList.add('active');
+                playDispatchTone();
+                addToTranscript('system', `🚨 ${unit.toUpperCase()} UNIT DISPATCHED TO ${currentCall.location}`);
+                
+                setTimeout(() => {
+                    addRadioMessage(unit, `Dispatch to ${unit}, respond to ${currentCall.location}. ${currentCall.type}.`);
+                }, 1000);
+                
+                if (currentCall.requiredUnits.includes(unit)) callScore += 15;
+            }
+        }
+
+        function setRadioChannel(channel) {
+            radioChannel = channel;
+            document.querySelectorAll('.channel-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`ch${channel.charAt(0).toUpperCase() + channel.slice(1)}`).classList.add('active');
+            playRadioChirp();
+        }
+
+        function sendRadioMessage() {
+            const input = document.getElementById('radioInput');
+            const message = input.value.trim();
+            if (!message || !callInProgress) return;
+            
+            playRadioChirp();
+            addRadioMessage(radioChannel, `Dispatch: ${message}`);
+            addToTranscript('radio', `TO ${radioChannel.toUpperCase()}: ${message}`);
+            
+            radioMessages.push({ channel: radioChannel, message: message });
+            callScore += 5;
+            
+            input.value = '';
+            
+            setTimeout(() => {
+                const responses = [
+                    'Copy that, en route.',
+                    '10-4, arriving on scene.',
+                    'Roger dispatch, we see the location.',
+                    'Affirmative, proceeding with caution.'
+                ];
+                const response = responses[Math.floor(Math.random() * responses.length)];
+                addRadioMessage(radioChannel, `Unit: ${response}`);
+            }, 2000);
+        }
+
+        function addRadioMessage(channel, text) {
+            const display = document.getElementById('radioDisplay');
+            const div = document.createElement('div');
+            div.style.marginBottom = '8px';
+            div.style.padding = '5px';
+            div.style.background = 'rgba(0, 212, 255, 0.1)';
+            div.style.borderRadius = '4px';
+            div.style.fontSize = '11px';
+            div.innerHTML = `<span style="color: var(--blue); font-weight: bold;">[${channel.toUpperCase()}]</span> ${text}`;
+            display.appendChild(div);
+            display.scrollTop = display.scrollHeight;
+        }
+
+        function endCall() {
+            if (!callInProgress) return;
+            
+            callInProgress = false;
+            clearInterval(timerInterval);
+            
+            document.getElementById('audioViz').classList.remove('active');
+            document.getElementById('audioViz').classList.add('silent');
+            document.getElementById('audioStatus').textContent = 'CALL ENDED';
+            document.getElementById('lineStatus').textContent = 'LINE: STANDBY';
+            document.getElementById('endBtn').disabled = true;
+            document.getElementById('responseArea').style.display = 'none';
+            
+            totalCalls++;
+            document.getElementById('callCount').textContent = totalCalls;
+            
+            evaluatePerformance();
+        }
+
+        function evaluatePerformance() {
+            const notepadText = document.getElementById('notepad').value.toLowerCase();
+            let infoFound = 0;
+            
+            currentCall.keyInfo.forEach(keyword => {
+                if (notepadText.includes(keyword.toLowerCase())) infoFound++;
+            });
+            
+            let correctUnits = 0;
+            currentCall.requiredUnits.forEach(unit => {
+                if (dispatchedUnits.has(unit)) correctUnits++;
+            });
+            
+            const maxScore = 200;
+            const percentage = Math.min(100, Math.round((callScore / maxScore) * 100));
+            
+            let grade, color;
+            if (percentage >= 90) { grade = 'EXCELLENT'; color = '#00ff41'; }
+            else if (percentage >= 75) { grade = 'GOOD'; color = '#ffb000'; }
+            else if (percentage >= 60) { grade = 'ACCEPTABLE'; color = '#ffb000'; }
+            else { grade = 'NEEDS IMPROVEMENT'; color = '#ff0040'; }
+            
+            document.getElementById('scoreDisplay').textContent = `${percentage}%`;
+            document.getElementById('scoreDisplay').style.color = color;
+            document.getElementById('responseStat').textContent = grade;
+            document.getElementById('unitsStat').textContent = `${correctUnits}/${currentCall.requiredUnits.length}`;
+            document.getElementById('radioStat').textContent = radioMessages.length;
+            document.getElementById('feedbackText').innerHTML = `
+                <span style="color: ${color}; font-size: 24px; font-weight: bold;">${grade}</span><br>
+                ${getFeedbackText(percentage, infoFound, correctUnits)}
+            `;
+            
+            document.getElementById('endModal').classList.add('show');
+            
+            document.getElementById('callerId').textContent = '---';
+            document.getElementById('callerLocation').textContent = '---';
+            document.getElementById('callerPhone').textContent = '---';
+            document.getElementById('emergencyType').textContent = '---';
+        }
+
+        function getFeedbackText(score, info, units) {
+            if (score >= 90) return 'Outstanding work! Your responses were timely and appropriate.';
+            if (score >= 75) return 'Good job. Your responses helped manage the situation.';
+            if (score >= 60) return 'Acceptable. Work on response relevance and speed.';
+            return 'Responses need improvement. Listen carefully to callers.';
+        }
+
+        function nextCall() {
+            document.getElementById('endModal').classList.remove('show');
+            document.getElementById('callTimer').textContent = '00:00';
+            document.getElementById('transcript').innerHTML = `
+                <div class="system-bubble" style="opacity: 0.6; padding: 20px;">
+                    Waiting for incoming emergency call...<br>
+                    <span style="font-size: 12px; margin-top: 10px; display: block;">
+                        System ready. Standby for dispatch.
+                    </span>
+                </div>
+            `;
+            document.getElementById('scrollHint').style.display = 'block';
+            incomingCall();
+        }
+
+        function clearNotepad() {
+            document.getElementById('notepad').value = '';
+            document.getElementById('notepad').focus();
+        }
+
+        document.getElementById('volumeSlider').addEventListener('input', (e) => {
+            volume = e.target.value / 100;
+        });
+
+        document.getElementById('radioInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendRadioMessage();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "911 Emergency Dispatcher",
+  "short_name": "911 Dispatcher",
+  "description": "Emergency dispatch simulation game",
+  "version": "2.0",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00ff41",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%2300ff41' width='192' height='192'/%3E%3Ctext x='96' y='120' font-size='80' text-anchor='middle' fill='%23000'%3E🚨%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
